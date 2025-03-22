@@ -18,8 +18,9 @@ class Seafood(discord.Client):
         if user.voice is None: return False
         return any(c for c in self.voice_clients if c.channel == user.voice.channel)
 
-    def find_user_voice_client(self, user) -> Optional[VoiceClient]:
-        return next((client for client in self.voice_clients if client.channel == user.voice.channel), None)
+    def find_connecting_user_voice_client(self, user) -> Optional[VoiceClient]:
+        if user.voice is None: return None
+        return next((c for c in self.voice_clients if c.channel == user.voice.channel), None)
 
     async def connect_to_vc(self, interaction: discord.Interaction) -> InteractionResult:
         if interaction.user.voice is None:
@@ -32,10 +33,12 @@ class Seafood(discord.Client):
 
     async def disconnect_from_vc(self, interaction: discord.Interaction) -> InteractionResult:
         try:
-            user_voice_client = self.find_user_voice_client(interaction.user)
-            await user_voice_client.voice_disconnect()
+            user_voice_client = self.find_connecting_user_voice_client(interaction.user)
+            if user_voice_client is None:
+                return Failure("ボイスチャットに接続していません。")
         except StopIteration:
             return Failure("ボイスチャットに接続していません。")
+        await user_voice_client.voice_disconnect()
         return Success("ボイスチャットから切断しました。")
 
 intents = discord.Intents.default()
